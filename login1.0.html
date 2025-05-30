@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BotTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #6366F1, #A78BFA);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-card {
+            background: #fff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card img {
+            width: 100px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0 20px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #4F46E5;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #4338CA;
+        }
+
+        .message {
+            text-align: center;
+            color: red;
+            margin-top: 10px;
+        }
+
+        .switch-role {
+            font-size: 13px;
+            color: #4F46E5;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .register-link {
+            margin-top: 10px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <img <img src="BotTool.png" alt="BotTool Logo" width="100">
+        <h2 id="loginTitle">Login to BotTool</h2>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p class="switch-role" onclick="toggleAdmin()">Login as Admin</p>
+        <p class="register-link">Don't have an account? <a href="#"
+                onclick="alert('Registration coming soon!')">Register here</a></p>
+        <p class="message" id="msg"></p>
+    </div>
+
+    <script>
+        let isAdmin = false;
+
+        const ADMIN_EMAIL = "admin@bottool.io";
+        const ADMIN_PASSWORD = "admin123";
+
+        function toggleAdmin() {
+            isAdmin = !isAdmin;
+            document.getElementById('loginTitle').textContent = isAdmin ? "Admin Login" : "Login to BotTool";
+        }
+
+        function login() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const msg = document.getElementById('msg');
+
+            if (isAdmin) {
+                if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+                    localStorage.setItem('bottoolUser', email);
+                    localStorage.setItem('bottoolRole', 'admin');
+                    location.href = "index.html";
+                } else {
+                    msg.textContent = "Invalid admin credentials";
+                }
+            } else {
+                // 默认用户流程（可扩展为数据库验证）
+                if (email && password) {
+                    localStorage.setItem('bottoolUser', email);
+                    localStorage.setItem('bottoolRole', 'user');
+                    location.href = "index.html";
+                } else {
+                    msg.textContent = "Please enter valid credentials";
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

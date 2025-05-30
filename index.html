@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Tool - First Release</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            padding: 30px;
+            margin-bottom: 30px;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h2,
+        h3 {
+            font-weight: 600;
+            text-align: center;
+        }
+
+        input,
+        select,
+        button {
+            font-size: 14px;
+            padding: 8px;
+            margin: 5px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #4338CA;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            margin-top: 30px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOGIN -->
+    <div class="card" id="loginPage">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <div class="error" id="errorMsg" style="color:red;"></div>
+        <button onclick="login()">Login</button>
+        <button onclick="toggleRegister(true)">Register</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="card hidden" id="registerPage">
+        <h2>Register</h2>
+        <input type="text" id="regUsername" placeholder="New Username">
+        <input type="password" id="regPassword" placeholder="New Password">
+        <div class="error" id="registerMsg" style="color:red;"></div>
+        <button onclick="register()">Create Account</button>
+        <button onclick="toggleRegister(false)">Back to Login</button>
+    </div>
+
+    <!-- MAIN -->
+    <div class="card hidden" id="mainPage">
+        <h2>Tracking Price Calculator</h2>
+        <div class="user-info" id="userInfo"></div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="dateInput">
+            </div>
+            <div class="form-group">
+                <label>Driver</label>
+                <select id="driverInput">
+                    <option value="">--Select Driver--</option>
+                    <option value="Bee">Bee</option>
+                    <option value="Jack">Jack</option>
+                    <option value="Jacky Chan">Jacky Chan</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Station</label>
+                <select id="stationInput">
+                    <option value="">--Select Station--</option>
+                    <option value="1820 Avenue M">1820 Avenue M</option>
+                    <option value="223 Bedford Ave">223 Bedford Ave</option>
+                    <option value="2602 Avenue U">2602 Avenue U</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tracking #</label>
+                <input type="text" id="trackingInput">
+            </div>
+            <div class="form-group">
+                <button onclick="addTracking()">Add</button>
+            </div>
+            <div class="form-group">
+                <button onclick="exportReport()">Export CSV</button>
+            </div>
+        </div>
+
+        <table id="trackingTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Driver</th>
+                    <th>Station</th>
+                    <th>Tracking</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+
+        <p id="total">Total: <span>0</span> 元</p>
+    </div>
+
+    <div class="card hidden" id="dailySummary">
+        <h3>📊 今日提货汇总</h3>
+        <div id="summaryContent"></div>
+    </div>
+
+    <canvas id="summaryChart" width="600" height="300"></canvas>
+    <canvas id="trendChart" width="600" height="300"></canvas>
+
+    <script>
+        let users = JSON.parse(localStorage.getItem('users')) || { 'admin': '1234' };
+        function toggleRegister(show) {
+            loginPage.classList.toggle('hidden', show);
+            registerPage.classList.toggle('hidden', !show);
+        }
+        function register() {
+            const u = regUsername.value, p = regPassword.value;
+            if (users[u]) return registerMsg.textContent = 'User exists';
+            users[u] = p;
+            localStorage.setItem('users', JSON.stringify(users));
+            registerMsg.textContent = 'Registered! Login now';
+        }
+        function login() {
+            const u = username.value, p = password.value;
+            if (users[u] === p) {
+                localStorage.setItem('currentUser', u);
+                showMain(u);
+            } else errorMsg.textContent = 'Invalid credentials';
+        }
+        function showMain(u) {
+            loginPage.classList.add('hidden');
+            registerPage.classList.add('hidden');
+            mainPage.classList.remove('hidden');
+            userInfo.innerHTML = `Logged in: <b>${u}</b> <button onclick='logout()'>Logout</button>`;
+        }
+        function logout() {
+            localStorage.removeItem('currentUser'); location.reload();
+        }
+        if (localStorage.getItem('currentUser')) showMain(localStorage.getItem('currentUser'));
+
+        let trackingList = [];
+        let chartInstance = null;
+        let trendChartInstance = null;
+
+        function addTracking() {
+            const d = dateInput.value, dr = driverInput.value, st = stationInput.value, tr = trackingInput.value;
+            if (!d || !dr || !st || !tr) return;
+            trackingList.push({ date: d, driver: dr, station: st, tracking: tr });
+            trackingInput.value = '';
+            renderTable();
+        }
+
+        function renderTable() {
+            tableBody.innerHTML = '';
+            let t = 0, i = 1, m = {}, s = {}, dt = dateInput.value;
+            trackingList.forEach(e => {
+                m[e.date] = m[e.date] || {}; m[e.date][e.driver] = m[e.date][e.driver] || {}; m[e.date][e.driver][e.station] = m[e.date][e.driver][e.station] || [];
+                m[e.date][e.driver][e.station].push(e.tracking);
+            });
+            for (const d in m) for (const dr in m[d]) {
+                let cnt = 0;
+                for (const st in m[d][dr]) {
+                    const trk = m[d][dr][st];
+                    trk.forEach((tr, j) => {
+                        let p = (j === 0) ? (cnt === 0 ? 15 : 5) : (j < 15 ? 0 : 1);
+                        t += p;
+                        s[d] = s[d] || {}; s[d][dr] = s[d][dr] || { count: 0, amount: 0 };
+                        s[d][dr].count++; s[d][dr].amount += p;
+                        tableBody.innerHTML += `<tr><td>${i++}</td><td>${d}</td><td>${dr}</td><td>${st}</td><td>${tr}</td><td>${p}</td></tr>`;
+                    }); cnt++;
+                }
+            }
+            total.querySelector('span').textContent = t;
+            renderSummary(s, dt);
+        }
+
+        function renderSummary(summaryData, selectedDate) {
+            dailySummary.classList.remove('hidden');
+            const summary = summaryData[selectedDate];
+            const container = summaryContent;
+            container.innerHTML = '';
+            if (!summary) return container.textContent = 'No data';
+            const labels = [], data = [];
+            for (const driver in summary) {
+                const r = summary[driver];
+                container.innerHTML += `<strong>${driver}</strong>: ${r.count} 件，共 ${r.amount} 元<br>`;
+                labels.push(driver); data.push(r.amount);
+            }
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(summaryChart.getContext('2d'), {
+                type: 'bar', data: { labels: labels, datasets: [{ label: '金额(元)', data: data, backgroundColor: 'rgba(79,70,229,0.6)' }] },
+                options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+            });
+            if (labels.length > 0) renderTrendChart(summaryData, labels[0]);
+        }
+
+        function renderTrendChart(summaryAll, selectedDriver) {
+            const dates = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date(); d.setDate(d.getDate() - (6 - i));
+                return d.toISOString().split('T')[0];
+            });
+            const data = dates.map(d => (summaryAll[d] && summaryAll[d][selectedDriver]) ? summaryAll[d][selectedDriver].amount : 0);
+            if (trendChartInstance) trendChartInstance.destroy();
+            trendChartInstance = new Chart(trendChart.getContext('2d'), {
+                type: 'line', data: { labels: dates, datasets: [{ label: `${selectedDriver} 近7日趋势`, data: data, borderColor: 'rgba(75,192,192,1)', tension: 0.3 }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function exportReport() {
+            let csv = 'No,Date,Driver,Station,Tracking,Price\n';
+            document.querySelectorAll('#trackingTable tbody tr').forEach(r => {
+                csv += Array.from(r.children).map(td => td.innerText).join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'tracking_report.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+    </script>
+</body>
+
+</html>
