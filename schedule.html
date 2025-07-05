@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EWR Sorter Schedule Headcount</title>
+    <!-- Chart.js Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- HTML to Image Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --border-color: #ddd;
+            --header-bg: #e9ecef;
+            --card-bg: #fff;
+            --body-bg: #f4f7f9;
+            --text-color: #333;
+            --primary-color: #005a9c;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--body-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        h1, h2 {
+            color: var(--primary-color);
+            font-size: 1.4em;
+        }
+        h1 {
+            text-align: center;
+            border: none;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        .card-header h2 {
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        /* Visual Schedule Styles */
+        .schedule-container-wrapper {
+            overflow-x: auto;
+        }
+        #schedule-table {
+            border-collapse: collapse;
+            width: 100%;
+            border: 1px solid var(--border-color);
+        }
+        #schedule-table th, #schedule-table td {
+            border: 1px solid var(--border-color);
+            text-align: center;
+            padding: 8px 5px;
+            font-size: 0.9em;
+            min-width: 75px;
+        }
+        #schedule-table th {
+            background-color: var(--header-bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .time-label-col {
+            position: sticky;
+            left: 0;
+            z-index: 9;
+            background-color: #f8f9fa;
+            font-weight: bold;
+            min-width: 70px;
+        }
+        .total-col {
+            font-weight: bold;
+            background-color: #e7f3ff;
+            transition: font-size 0.2s ease-in-out;
+        }
+        .team-block-cell {
+            background-color: var(--team-color, #ccc);
+            color: white;
+            font-weight: bold;
+            vertical-align: middle;
+            font-size: 1.1em;
+        }
+
+        /* Team Editing Styles */
+        .team-card {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .team-inputs {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 3fr 1fr 2.5fr 2.5fr;
+            gap: 8px;
+        }
+        .time-input-group {
+            display: flex;
+            align-items: center;
+        }
+        input[type="text"], input[type="number"], input[type="time"] {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.9em;
+            height: 32px;
+        }
+        .time-adjust-btn {
+            padding: 0 8px;
+            font-size: 1.2em;
+            line-height: 30px;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        .time-adjust-btn:first-of-type { border-radius: 4px 0 0 4px; border-right: none; }
+        .time-adjust-btn:last-of-type { border-radius: 0 4px 4px 0; border-left: none; }
+        input[type="time"] { border-radius: 0; text-align: center; }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn-add { background-color: #28a745; color: white; }
+        .btn-add:hover { background-color: #218838; }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            height: 32px;
+            line-height: 1;
+        }
+        .btn-delete:hover { background-color: #c82333; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-download {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .btn-download:hover {
+            background-color: #138496;
+        }
+        #feedback-message { text-align: center; color: green; height: 20px; font-weight: bold; font-size: 0.9em; }
+
+        @media (max-width: 768px) {
+            .team-inputs { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>EWR Sorter Schedule</h1>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>团队排班设置</h2>
+            </div>
+            <div id="teams-container"></div>
+            <div id="feedback-message"></div>
+            <div class="button-group">
+                <button id="reset-button" class="btn btn-secondary">😁</button>
+                <button id="add-team-button" class="btn btn-add">+ 添加团队</button>
+            </div>
+        </div>
+        
+        <div class="card">
+             <div class="card-header">
+                <h2>可视化排班表</h2>
+                <button id="download-table-btn" class="btn btn-download">下载图片</button>
+             </div>
+             <div class="schedule-container-wrapper">
+                <table id="schedule-table"></table>
+             </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>总计人数变化图</h2>
+                <button id="download-chart-btn" class="btn btn-download">下载图片</button>
+            </div>
+            <canvas id="headcount-chart"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialTeams = [
+                { name: 'Chinese1', count: 20, start: '10:00', end: '22:00' },
+                { name: 'Chinese2', count: 6, start: '12:00', end: '02:00' },
+                { name: 'Carlos', count: 30, start: '12:00', end: '02:00' },
+                { name: 'Agency', count: 20, start: '10:00', end: '20:00' }
+            ];
+            const teamColors = ['#8ECAE6', '#219EBC', '#FB8500', '#FFB703', '#d62828', '#f77f00', '#023047', '#6a4c93'];
+
+            const scheduleTable = document.getElementById('schedule-table');
+            const teamsContainer = document.getElementById('teams-container');
+            const addTeamButton = document.getElementById('add-team-button');
+            const resetButton = document.getElementById('reset-button');
+            const feedbackMessage = document.getElementById('feedback-message');
+            const chartCanvas = document.getElementById('headcount-chart');
+            const downloadTableBtn = document.getElementById('download-table-btn');
+            const downloadChartBtn = document.getElementById('download-chart-btn');
+            let headcountChart = null;
+
+            let teams = [];
+
+            function loadTeams() {
+                const storedTeams = localStorage.getItem('ewrSorterTeams');
+                teams = storedTeams ? JSON.parse(storedTeams) : structuredClone(initialTeams);
+            }
+
+            function showFeedback(message) {
+                feedbackMessage.textContent = message;
+                setTimeout(() => { feedbackMessage.textContent = ''; }, 2000);
+            }
+            
+            function saveAndRender() {
+                localStorage.setItem('ewrSorterTeams', JSON.stringify(teams));
+                renderAll();
+                showFeedback('已自动保存！');
+            }
+            
+            function renderTeamEditors() {
+                teamsContainer.innerHTML = '';
+                teams.forEach((team, index) => {
+                    const teamCard = document.createElement('div');
+                    teamCard.className = 'team-card';
+                    teamCard.dataset.index = index; 
+                    teamCard.innerHTML = `
+                        <div class="team-inputs">
+                            <input type="text" value="${team.name}" data-prop="name" placeholder="团队名称">
+                            <input type="number" value="${team.count}" data-prop="count" placeholder="人数">
+                            <div class="time-input-group">
+                                <button class="time-adjust-btn" data-target="start-${index}" data-amount="-30">-</button>
+                                <input type="time" id="start-${index}" value="${team.start}" data-prop="start">
+                                <button class="time-adjust-btn" data-target="start-${index}" data-amount="30">+</button>
+                            </div>
+                             <div class="time-input-group">
+                                <button class="time-adjust-btn" data-target="end-${index}" data-amount="-30">-</button>
+                                <input type="time" id="end-${index}" value="${team.end}" data-prop="end">
+                                <button class="time-adjust-btn" data-target="end-${index}" data-amount="30">+</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-delete" data-index="${index}">删</button>`;
+                    teamsContainer.appendChild(teamCard);
+                });
+            }
+
+            function renderVisualSchedule() {
+                scheduleTable.innerHTML = '';
+
+                let minHour = 24, maxHour = 0;
+                teams.forEach(team => {
+                    if (team.start && team.end) {
+                        const [startH] = team.start.split(':').map(Number);
+                        const [endH] = team.end.split(':').map(Number);
+                        if (isNaN(startH) || isNaN(endH)) return;
+                        minHour = Math.min(minHour, startH);
+                        let effectiveEndHour = endH <= startH ? endH + 24 : endH;
+                        maxHour = Math.max(maxHour, effectiveEndHour);
+                    }
+                });
+                
+                if (minHour >= 24) {
+                    scheduleTable.innerHTML = '<thead><tr><td>请输入排班信息以生成图表。</td></tr></thead>';
+                    return;
+                }
+                
+                const startHour = Math.floor(minHour);
+                const endHour = Math.ceil(maxHour);
+                const totalIntervals = (endHour - startHour) * 2;
+
+                const allTotals = [];
+                for (let i = 0; i < totalIntervals; i++) {
+                    const currentHour = startHour + Math.floor(i / 2);
+                    const currentMinute = (i % 2) * 30;
+                    const currentTimeStr = `${String(currentHour % 24).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+                    let intervalTotal = 0;
+                    teams.forEach(team => {
+                        if (isTeamActive(team, currentTimeStr)) {
+                            intervalTotal += parseInt(team.count, 10) || 0;
+                        }
+                    });
+                    allTotals.push(intervalTotal);
+                }
+
+                const nonZeroTotals = allTotals.filter(t => t > 0);
+                const minTotal = nonZeroTotals.length > 0 ? Math.min(...nonZeroTotals) : 0;
+                const maxTotal = allTotals.length > 0 ? Math.max(...allTotals) : 0;
+                const minFontSize = 0.9;
+                const maxFontSize = 1.4;
+
+                const thead = scheduleTable.createTHead();
+                const headerRow = thead.insertRow();
+                headerRow.innerHTML = `<th class="time-label-col">时间</th><th class="total-col">总计</th>`;
+                teams.forEach((team, index) => {
+                    const th = document.createElement('th');
+                    th.textContent = team.name;
+                    th.style.color = teamColors[index % teamColors.length];
+                    headerRow.appendChild(th);
+                });
+
+                const tbody = scheduleTable.createTBody();
+                const teamCellRendered = new Array(teams.length).fill(0);
+
+                for (let i = 0; i < totalIntervals; i++) {
+                    const row = tbody.insertRow();
+                    const currentHour = startHour + Math.floor(i / 2);
+                    const currentMinute = (i % 2) * 30;
+                    const currentTimeStr = `${String(currentHour % 24).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+
+                    const timeCell = row.insertCell();
+                    timeCell.className = 'time-label-col';
+                    if (currentMinute === 0) {
+                        const displayHour = currentHour % 24;
+                        const ampm = displayHour < 12 ? 'AM' : 'PM';
+                        let formattedHour = displayHour % 12;
+                        if (formattedHour === 0) formattedHour = 12;
+                        timeCell.textContent = `${formattedHour} ${ampm}`;
+                    }
+
+                    const totalCell = row.insertCell();
+                    totalCell.className = 'total-col';
+                    const intervalTotal = allTotals[i];
+                    
+                    let fontSize = minFontSize;
+                    if (intervalTotal > 0) {
+                        if (maxTotal > minTotal) {
+                            const scale = (intervalTotal - minTotal) / (maxTotal - minTotal);
+                            fontSize = minFontSize + scale * (maxFontSize - minFontSize);
+                        } else {
+                            fontSize = maxFontSize;
+                        }
+                    }
+                    totalCell.style.fontSize = `${fontSize.toFixed(2)}em`;
+                    if (intervalTotal === 0) totalCell.style.color = '#aaa';
+                    totalCell.textContent = intervalTotal;
+
+                    teams.forEach((team, teamIndex) => {
+                        if (teamCellRendered[teamIndex] > 0) {
+                            teamCellRendered[teamIndex]--;
+                            return;
+                        }
+                        
+                        if (team.start === currentTimeStr) {
+                             const [startH, startM] = team.start.split(':').map(Number);
+                             const [endH, endM] = team.end.split(':').map(Number);
+                             if(isNaN(startH) || isNaN(endH)) return;
+
+                             const startTotalMinutes = startH * 60 + startM;
+                             let endTotalMinutes = endH * 60 + endM;
+                             if (endTotalMinutes <= startTotalMinutes) endTotalMinutes += 24 * 60;
+
+                             const durationInIntervals = (endTotalMinutes - startTotalMinutes) / 30;
+                             
+                             const teamCell = row.insertCell();
+                             teamCell.className = 'team-block-cell';
+                             teamCell.rowSpan = durationInIntervals;
+                             teamCell.textContent = team.count;
+                             teamCell.style.setProperty('--team-color', teamColors[teamIndex % teamColors.length]);
+                             teamCellRendered[teamIndex] = durationInIntervals - 1;
+                        } else {
+                            row.insertCell();
+                        }
+                    });
+                }
+            }
+            
+            function renderHeadcountChart() {
+                if (headcountChart) {
+                    headcountChart.destroy();
+                }
+
+                const timePoints = new Set();
+                teams.forEach(team => {
+                    if (team.start) timePoints.add(team.start);
+                    if (team.end) timePoints.add(team.end);
+                });
+                
+                if (timePoints.size === 0) return;
+
+                const sortedTimePoints = Array.from(timePoints).sort((a, b) => timeToMinutes(a, true) - timeToMinutes(b, true));
+                
+                const chartBlocks = [];
+                if (sortedTimePoints.length > 0) {
+                    for (let i = 0; i < sortedTimePoints.length; i++) {
+                        const start = sortedTimePoints[i];
+                        const end = (i + 1 < sortedTimePoints.length) ? sortedTimePoints[i+1] : sortedTimePoints[0];
+                        
+                        const startMins = timeToMinutes(start, true);
+                        let endMins = timeToMinutes(end, true);
+
+                        if (endMins <= startMins) {
+                           endMins += 24 * 60;
+                        }
+
+                        const midPointMinutes = (startMins + endMins) / 2;
+                        const midPointTime = minutesToTime(midPointMinutes);
+
+                        let total = 0;
+                        teams.forEach(team => {
+                            if (isTeamActive(team, midPointTime)) {
+                                total += parseInt(team.count, 10) || 0;
+                            }
+                        });
+                        
+                        if (chartBlocks.length > 0 && chartBlocks[chartBlocks.length - 1].total === total) {
+                            chartBlocks[chartBlocks.length - 1].end = end;
+                        } else {
+                            if (startMins < endMins) {
+                                chartBlocks.push({ start: start, end: end, total: total });
+                            }
+                        }
+                    }
+                }
+                
+                const finalBlocks = chartBlocks.filter(b => b.total > 0);
+
+                const labels = finalBlocks.map(d => `${d.start} - ${d.end}`);
+                const data = finalBlocks.map(d => d.total);
+                
+                const nonZeroData = data.filter(d => d > 0);
+                const minTotal = nonZeroData.length > 0 ? Math.min(...nonZeroData) : 0;
+                const maxTotal = data.length > 0 ? Math.max(...data) : 0;
+                const minAlpha = 0.3;
+                const maxAlpha = 1.0;
+
+                const backgroundColors = data.map(total => {
+                    if (total === 0) return 'rgba(200, 200, 200, 0.2)';
+                    let alpha = maxAlpha;
+                    if (maxTotal > minTotal) {
+                        const scale = (total - minTotal) / (maxTotal - minTotal);
+                        alpha = minAlpha + scale * (maxAlpha - minAlpha);
+                    }
+                    return `rgba(0, 90, 156, ${alpha})`;
+                });
+
+                headcountChart = new Chart(chartCanvas, {
+                    type: 'bar',
+                    plugins: [ChartDataLabels],
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '总计人数',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            borderColor: 'rgba(0, 90, 156, 1)',
+                            borderWidth: 1,
+                            barPercentage: 1.0,
+                            categoryPercentage: 1.0
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                anchor: 'center',
+                                align: 'center',
+                                color: (context) => {
+                                    const value = context.dataset.data[context.dataIndex];
+                                    const totalRange = maxTotal - minTotal;
+                                    if (totalRange > 0) {
+                                       const scale = (value - minTotal) / totalRange;
+                                       return scale > 0.5 ? 'white' : '#333';
+                                    }
+                                    return value > 0 ? 'white' : '#333';
+                                },
+                                font: {
+                                    weight: 'bold'
+                                },
+                                formatter: function(value) {
+                                    return value > 0 ? value : null;
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: '人数' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                title: { display: true, text: '时间段' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function timeToMinutes(timeStr, allowOvernight = false) {
+                let [h, m] = timeStr.split(':').map(Number);
+                if (allowOvernight && h < 5) {
+                    h += 24;
+                }
+                return h * 60 + m;
+            }
+
+            function minutesToTime(minutes) {
+                const h = Math.floor(minutes / 60) % 24;
+                const m = Math.round(minutes % 60);
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+
+            function isTeamActive(team, selectedTime) {
+                if (!team.start || !team.end) return false;
+                if (team.start > team.end) {
+                    return selectedTime >= team.start || selectedTime < team.end;
+                } else {
+                    return selectedTime >= team.start && selectedTime < team.end;
+                }
+            }
+
+            function adjustTime(inputId, amount) {
+                const timeInput = document.getElementById(inputId);
+                if (!timeInput || !timeInput.value) return;
+
+                const [hours, minutes] = timeInput.value.split(':').map(Number);
+                const date = new Date();
+                date.setHours(hours, minutes);
+                date.setMinutes(date.getMinutes() + amount);
+
+                const newHours = String(date.getHours()).padStart(2, '0');
+                const newMinutes = String(date.getMinutes()).padStart(2, '0');
+                
+                timeInput.value = `${newHours}:${newMinutes}`;
+                
+                timeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            function renderAll() {
+                renderTeamEditors();
+                renderVisualSchedule();
+                renderHeadcountChart();
+            }
+
+            // --- Event Listeners ---
+            teamsContainer.addEventListener('input', (e) => {
+                if(e.target.matches('input')) {
+                    const card = e.target.closest('.team-card');
+                    const index = parseInt(card.dataset.index, 10);
+                    const prop = e.target.dataset.prop;
+                    if (teams[index]) {
+                        teams[index][prop] = e.target.value;
+                        saveAndRender();
+                    }
+                }
+            });
+
+            teamsContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.classList.contains('btn-delete')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    teams.splice(index, 1);
+                    saveAndRender();
+                } else if (target.classList.contains('time-adjust-btn')) {
+                    const targetId = target.dataset.target;
+                    const amount = parseInt(target.dataset.amount, 10);
+                    adjustTime(targetId, amount);
+                }
+            });
+
+            addTeamButton.addEventListener('click', () => {
+                teams.push({ name: '', count: '', start: '', end: '' });
+                saveAndRender();
+            });
+            
+            resetButton.addEventListener('click', () => {
+                if (confirm('您确定要重置所有团队信息为默认设置吗？')) {
+                    localStorage.removeItem('ewrSorterTeams');
+                    loadTeams();
+                    renderAll();
+                    showFeedback('已重置为默认设置。');
+                }
+            });
+            
+            downloadTableBtn.addEventListener('click', () => {
+                const table = document.getElementById('schedule-table');
+                if (table) {
+                    html2canvas(table, { scale: 2, backgroundColor: '#ffffff', useCORS: true }).then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = 'schedule-table.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    });
+                }
+            });
+
+            downloadChartBtn.addEventListener('click', () => {
+                if (headcountChart) {
+                    const link = document.createElement('a');
+                    link.download = 'headcount-chart.png';
+                    link.href = headcountChart.toBase64Image();
+                    link.click();
+                }
+            });
+            
+            window.addEventListener('resize', renderAll);
+            function initialize() {
+                loadTeams();
+                renderAll();
+            }
+
+            initialize();
+        });
+    </script>
+</body>
+</html>

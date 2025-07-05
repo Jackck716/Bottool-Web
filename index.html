@@ -1,306 +1,476 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tracking Tool - First Release</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Bottool - 首页</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: #f4f6f8;
-            margin: 0;
-            padding: 40px;
+            scroll-behavior: smooth;
         }
 
-        .hidden {
-            display: none;
+        .navbar-logo {
+            max-height: 50px;
+            width: auto;
         }
 
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-            padding: 30px;
-            margin-bottom: 30px;
-            max-width: 1000px;
-            margin-left: auto;
-            margin-right: auto;
+        .plugin-card {
+            @apply bg-white p-8 rounded-xl shadow-lg border border-gray-200 flex flex-col justify-between;
         }
 
-        h2,
-        h3 {
-            font-weight: 600;
-            text-align: center;
+        .plugin-card-clickable {
+            @apply transform hover:scale-105 transition-transform duration-300 cursor-pointer hover:shadow-2xl;
         }
 
-        input,
-        select,
-        button {
-            font-size: 14px;
-            padding: 8px;
-            margin: 5px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
+        .idea-card {
+            @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6 rounded-lg shadow-md border border-gray-200;
         }
 
-        button {
-            background: #4F46E5;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: 0.3s;
+        .calculator-button {
+            @apply text-white py-4 px-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-150 ease-in-out font-semibold text-base shadow-md hover:shadow-lg transform hover:-translate-y-0.5;
         }
 
-        button:hover {
-            background: #4338CA;
+        .calculator-button-primary {
+            @apply bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
+        .calculator-button-secondary {
+            @apply bg-green-600 hover:bg-green-700 focus:ring-green-500;
         }
 
-        th,
-        td {
-            padding: 10px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
+        .section-title {
+            @apply text-4xl lg:text-5xl font-bold text-center text-gray-800;
         }
 
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 20px;
+        .section-subtitle {
+            @apply text-xl lg:text-2xl text-gray-600 max-w-3xl mx-auto text-center;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .user-info {
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        canvas {
-            margin-top: 30px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
+        .form-label {
+            @apply block text-base font-semibold text-gray-700 mb-2;
         }
     </style>
 </head>
 
-<body>
-
-    <!-- LOGIN -->
-    <div class="card" id="loginPage">
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
-        <div class="error" id="errorMsg" style="color:red;"></div>
-        <button onclick="login()">Login</button>
-        <button onclick="toggleRegister(true)">Register</button>
-    </div>
-
-    <!-- REGISTER -->
-    <div class="card hidden" id="registerPage">
-        <h2>Register</h2>
-        <input type="text" id="regUsername" placeholder="New Username">
-        <input type="password" id="regPassword" placeholder="New Password">
-        <div class="error" id="registerMsg" style="color:red;"></div>
-        <button onclick="register()">Create Account</button>
-        <button onclick="toggleRegister(false)">Back to Login</button>
-    </div>
-
-    <!-- MAIN -->
-    <div class="card hidden" id="mainPage">
-        <h2>Tracking Price Calculator</h2>
-        <div class="user-info" id="userInfo"></div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label>Date</label>
-                <input type="date" id="dateInput">
+<body class="bg-gray-100 text-gray-800 antialiased">
+    <nav class="bg-white/90 backdrop-blur-md shadow-lg fixed w-full z-30 top-0 transition-all duration-300">
+        <div class="container mx-auto px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center">
+                <img src="BotTool.jpg" alt="Bottool Logo" class="navbar-logo mr-3">
+                <span class="text-3xl font-bold text-indigo-600">Bottool</span>
+            </a>
+            <div class="hidden lg:flex items-center space-x-2"> <a href="index.html" data-lang-key="nav_home"
+                    class="text-gray-700 hover:text-indigo-600 px-4 py-3 rounded-md text-base font-medium transition-colors">首页</a>
+                <a href="#features" data-lang-key="nav_featured_plugins"
+                    class="text-gray-700 hover:text-indigo-600 px-4 py-3 rounded-md text-base font-medium transition-colors">特色插件</a>
+                <a href="#plugin-idea-generator" data-lang-key="nav_idea_generator"
+                    class="text-gray-700 hover:text-indigo-600 px-4 py-3 rounded-md text-base font-medium transition-colors">✨
+                    创意生成</a>
+                <a href="#about" data-lang-key="nav_about_us"
+                    class="text-gray-700 hover:text-indigo-600 px-4 py-3 rounded-md text-base font-medium transition-colors">关于我们</a>
+                <a href="login.html" data-lang-key="nav_login"
+                    class="calculator-button calculator-button-primary ml-3 !py-3 !px-6">登录</a> <a href="register.html"
+                    data-lang-key="nav_register"
+                    class="calculator-button calculator-button-secondary ml-3 !py-3 !px-6">注册</a>
+                <button id="languageToggle"
+                    class="ml-4 text-base p-3 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors">
+                    <span data-lang-key="lang_toggle_en">EN</span> / <span data-lang-key="lang_toggle_zh">中</span>
+                </button>
             </div>
-            <div class="form-group">
-                <label>Driver</label>
-                <select id="driverInput">
-                    <option value="">--Select Driver--</option>
-                    <option value="Bee">Bee</option>
-                    <option value="Jack">Jack</option>
-                    <option value="Jacky Chan">Jacky Chan</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Station</label>
-                <select id="stationInput">
-                    <option value="">--Select Station--</option>
-                    <option value="1820 Avenue M">1820 Avenue M</option>
-                    <option value="223 Bedford Ave">223 Bedford Ave</option>
-                    <option value="2602 Avenue U">2602 Avenue U</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Tracking #</label>
-                <input type="text" id="trackingInput">
-            </div>
-            <div class="form-group">
-                <button onclick="addTracking()">Add</button>
-            </div>
-            <div class="form-group">
-                <button onclick="exportReport()">Export CSV</button>
+            <div class="lg:hidden"> <button id="mobileMenuButton"
+                    class="text-gray-700 hover:text-indigo-600 focus:outline-none p-2">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
             </div>
         </div>
+        <div id="mobileMenu" class="lg:hidden hidden bg-white shadow-lg py-2">
+            <a href="index.html" data-lang-key="nav_home"
+                class="block px-6 py-3 text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600">首页</a>
+            <a href="#features" data-lang-key="nav_featured_plugins"
+                class="block px-6 py-3 text-base font-medium text-gray-700 hover:bg-indigo-50 hover:bg-indigo-600">特色插件</a>
+            <a href="#plugin-idea-generator" data-lang-key="nav_idea_generator"
+                class="block px-6 py-3 text-base font-medium text-gray-700 hover:bg-indigo-50 hover:bg-indigo-600">✨
+                创意生成</a>
+            <a href="#about" data-lang-key="nav_about_us"
+                class="block px-6 py-3 text-base font-medium text-gray-700 hover:bg-indigo-50 hover:bg-indigo-600">关于我们</a>
+            <a href="login.html" data-lang-key="nav_login"
+                class="block px-6 py-3 text-base font-medium text-indigo-600 hover:bg-indigo-50">登录</a>
+            <a href="register.html" data-lang-key="nav_register"
+                class="block px-6 py-3 text-base font-medium text-green-600 hover:bg-green-50">注册</a>
+            <div class="px-6 py-3">
+                <button id="languageToggleMobile" class="w-full text-base p-3 bg-gray-200 hover:bg-gray-300 rounded-lg">
+                    <span data-lang-key="lang_toggle_en">EN</span> / <span data-lang-key="lang_toggle_zh">中</span>
+                </button>
+            </div>
+        </div>
+    </nav>
 
-        <table id="trackingTable">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Date</th>
-                    <th>Driver</th>
-                    <th>Station</th>
-                    <th>Tracking</th>
-                    <th>Price</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+    <header class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white pt-48 pb-32">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-5xl lg:text-7xl font-extrabold mb-8" data-lang-key="hero_title">欢迎来到 Bottool 插件平台</h1>
+            <p class="text-xl lg:text-2xl mb-12" data-lang-key="hero_subtitle">发现、分享和管理您最喜爱的机器人插件。</p>
+            <a href="register.html" data-lang-key="hero_cta"
+                class="calculator-button calculator-button-secondary !bg-white !text-indigo-600 hover:!bg-gray-100 px-12 py-5 text-xl rounded-xl shadow-xl">立即开始</a>
+        </div>
+    </header>
 
-        <p id="total">Total: <span>0</span> 元</p>
-    </div>
+    <section id="features" class="py-24 bg-slate-50">
+        <div class="container mx-auto px-6">
+            <h2 class="section-title mb-20" data-lang-key="featured_plugins_title">特色插件</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                <div class="plugin-card">
+                    <img src="https://placehold.co/600x400/818CF8/FFFFFF?text=智能助手" alt="插件图片1"
+                        class="w-full h-60 object-cover rounded-t-lg">
+                    <div class="p-8 flex flex-col flex-grow">
+                        <h3 class="text-2xl font-semibold mb-4 text-indigo-700" data-lang-key="plugin1_name">智能聊天助手</h3>
+                        <p class="text-gray-600 mb-6 text-base flex-grow" data-lang-key="plugin1_desc">
+                            一款能够理解自然语言并提供智能回复的聊天插件。</p>
+                        <a href="#"
+                            class="inline-flex items-center justify-center calculator-button calculator-button-primary mt-auto !py-3 !px-6 self-start"
+                            data-lang-key="learn_more">了解更多 <i class="fas fa-arrow-right ml-2"></i></a>
+                    </div>
+                </div>
+                <div class="plugin-card">
+                    <img src="https://placehold.co/600x400/A78BFA/FFFFFF?text=数据分析" alt="插件图片2"
+                        class="w-full h-60 object-cover rounded-t-lg">
+                    <div class="p-8 flex flex-col flex-grow">
+                        <h3 class="text-2xl font-semibold mb-4 text-indigo-700" data-lang-key="plugin2_name">数据分析工具</h3>
+                        <p class="text-gray-600 mb-6 text-base flex-grow" data-lang-key="plugin2_desc">
+                            帮助您轻松分析和可视化数据的强大插件。</p>
+                        <a href="#"
+                            class="inline-flex items-center justify-center calculator-button calculator-button-primary mt-auto !py-3 !px-6 self-start"
+                            data-lang-key="learn_more">了解更多 <i class="fas fa-arrow-right ml-2"></i></a>
+                    </div>
+                </div>
+                <div class="plugin-card plugin-card-clickable">
+                    <a href="jfk-pickup-registration.html" class="flex flex-col flex-grow h-full">
+                        <img src="https://placehold.co/600x400/34D399/FFFFFF?text=JFK+Maersk" alt="JFK Maersk Tools"
+                            class="w-full h-60 object-cover rounded-t-lg">
+                        <div class="p-8 flex flex-col flex-grow">
+                            <h3 class="text-2xl font-semibold mb-4 text-green-700" data-lang-key="jfk_plugin_name">JFK
+                                Maersk Tools</h3>
+                            <p class="text-gray-600 mb-6 text-base flex-grow" data-lang-key="jfk_plugin_desc">
+                                追踪价格计算和报告导出工具。</p>
+                            <span
+                                class="inline-flex items-center justify-center calculator-button !bg-green-600 hover:!bg-green-700 mt-auto !py-3 !px-6 self-start"
+                                data-lang-key="open_tool">打开工具 <i class="fas fa-arrow-right ml-2"></i></span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    <div class="card hidden" id="dailySummary">
-        <h3>📊 今日提货汇总</h3>
-        <div id="summaryContent"></div>
-    </div>
+    <section id="plugin-idea-generator" class="py-24 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="section-title mb-12" data-lang-key="idea_generator_title">✨ 插件创意生成器</h2>
+            <p class="section-subtitle mb-16" data-lang-key="idea_generator_subtitle">
+                遇到瓶颈了？输入一个关键词或您想解决的问题，让 AI 为您提供一些插件开发灵感！
+            </p>
+            <div class="max-w-2xl mx-auto bg-slate-50 p-10 rounded-xl shadow-xl">
+                <div class="mb-8">
+                    <label for="ideaKeyword" class="form-label" data-lang-key="idea_keyword_label">关键词或问题描述:</label>
+                    <input type="text" id="ideaKeyword" name="ideaKeyword" class="calculator-input"
+                        data-lang-placeholder="idea_keyword_placeholder" placeholder="例如：提高效率、图片处理、社交媒体...">
+                </div>
+                <button id="generateIdeasButton"
+                    class="w-full calculator-button calculator-button-primary flex items-center justify-center text-base">
+                    <i class="fas fa-lightbulb mr-3"></i> <span data-lang-key="generate_ideas_button">生成创意</span>
+                </button>
+                <div id="ideaResultArea" class="mt-10">
+                </div>
+            </div>
+        </div>
+    </section>
 
-    <canvas id="summaryChart" width="600" height="300"></canvas>
-    <canvas id="trendChart" width="600" height="300"></canvas>
+    <section id="about" class="py-24 bg-slate-50">
+        <div class="container mx-auto px-6">
+            <h2 class="section-title mb-12" data-lang-key="about_us_title">关于 Bottool</h2>
+            <p class="section-subtitle" data-lang-key="about_us_content">
+                Bottool 致力于为用户提供一个开放、便捷的插件生态系统。在这里，开发者可以发布自己的创新插件，用户可以轻松找到并使用适合自己需求的工具，共同推动机器人技术的发展与应用。
+            </p>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 text-gray-300 py-16">
+        <div class="container mx-auto px-6 text-center">
+            <div class="mb-6">
+                <a href="index.html" class="flex items-center justify-center mb-4">
+                    <img src="BotTool.jpg" alt="Bottool Logo" class="navbar-logo mr-3 filter brightness-0 invert"> <span
+                        class="text-3xl font-bold text-white">Bottool</span>
+                </a>
+            </div>
+            <p data-lang-key="footer_copyright" class="text-base mb-4">&copy; 2025 Bottool. 保留所有权利。</p>
+            <div class="space-x-6 text-base">
+                <a href="#" class="hover:text-indigo-400 transition-colors" data-lang-key="footer_privacy">隐私政策</a>
+                <span class="text-gray-500">|</span>
+                <a href="#" class="hover:text-indigo-400 transition-colors" data-lang-key="footer_terms">服务条款</a>
+            </div>
+            <div class="mt-8 space-x-6">
+                <a href="#" aria-label="Facebook" class="text-gray-400 hover:text-indigo-400 transition-colors"><i
+                        class="fab fa-facebook-f fa-lg"></i></a>
+                <a href="#" aria-label="Twitter" class="text-gray-400 hover:text-indigo-400 transition-colors"><i
+                        class="fab fa-twitter fa-lg"></i></a>
+                <a href="#" aria-label="LinkedIn" class="text-gray-400 hover:text-indigo-400 transition-colors"><i
+                        class="fab fa-linkedin-in fa-lg"></i></a>
+                <a href="#" aria-label="GitHub" class="text-gray-400 hover:text-indigo-400 transition-colors"><i
+                        class="fab fa-github fa-lg"></i></a>
+            </div>
+        </div>
+    </footer>
 
     <script>
-        let users = JSON.parse(localStorage.getItem('users')) || { 'admin': '1234' };
-        function toggleRegister(show) {
-            loginPage.classList.toggle('hidden', show);
-            registerPage.classList.toggle('hidden', !show);
-        }
-        function register() {
-            const u = regUsername.value, p = regPassword.value;
-            if (users[u]) return registerMsg.textContent = 'User exists';
-            users[u] = p;
-            localStorage.setItem('users', JSON.stringify(users));
-            registerMsg.textContent = 'Registered! Login now';
-        }
-        function login() {
-            const u = username.value, p = password.value;
-            if (users[u] === p) {
-                localStorage.setItem('currentUser', u);
-                showMain(u);
-            } else errorMsg.textContent = 'Invalid credentials';
-        }
-        function showMain(u) {
-            loginPage.classList.add('hidden');
-            registerPage.classList.add('hidden');
-            mainPage.classList.remove('hidden');
-            userInfo.innerHTML = `Logged in: <b>${u}</b> <button onclick='logout()'>Logout</button>`;
-        }
-        function logout() {
-            localStorage.removeItem('currentUser'); location.reload();
-        }
-        if (localStorage.getItem('currentUser')) showMain(localStorage.getItem('currentUser'));
+        // --- Language Toggle Functionality ---
+        const translations = {
+            en: {
+                nav_home: "Home",
+                nav_featured_plugins: "Featured Plugins",
+                nav_idea_generator: "✨ Idea Generator",
+                nav_about_us: "About Us",
+                nav_login: "Login",
+                nav_register: "Register",
+                lang_toggle_en: "EN",
+                lang_toggle_zh: "中",
+                hero_title: "Welcome to Bottool Plugin Platform",
+                hero_subtitle: "Discover, share, and manage your favorite bot plugins.",
+                hero_cta: "Get Started",
+                featured_plugins_title: "Featured Plugins",
+                plugin1_name: "Smart Chat Assistant",
+                plugin1_desc: "A chat plugin that understands natural language and provides intelligent responses.",
+                plugin2_name: "Data Analysis Tool",
+                plugin2_desc: "A powerful plugin to help you easily analyze and visualize data.",
+                jfk_plugin_name: "JFK Maersk Tools",
+                jfk_plugin_desc: "Tracking price calculation and report export tool.",
+                open_tool: "Open Tool",
+                learn_more: "Learn More",
+                idea_generator_title: "✨ Plugin Idea Generator",
+                idea_generator_subtitle: "Stuck? Enter a keyword or problem you want to solve, and let AI provide some plugin development inspiration!",
+                idea_keyword_label: "Keyword or Problem Description:",
+                idea_keyword_placeholder: "e.g., increase efficiency, image processing, social media...",
+                generate_ideas_button: "Generate Ideas",
+                about_us_title: "About Bottool",
+                about_us_content: "Bottool is dedicated to providing users with an open and convenient plugin ecosystem. Here, developers can publish their innovative plugins, and users can easily find and use tools that suit their needs, collectively promoting the development and application of bot technology.",
+                footer_copyright: "&copy; 2025 Bottool. All rights reserved.",
+                footer_privacy: "Privacy Policy",
+                footer_terms: "Terms of Service",
+                error_enter_keyword: "Please enter a keyword or problem description!",
+                generating_ideas: "Generating ideas, please wait...",
+                error_api_request_failed: "API request failed, status code: ",
+                error_parsing_ideas: "Could not parse valid plugin ideas from AI response. Original response:",
+                error_unexpected_api_response: "Sorry, failed to get ideas. AI returned data format not as expected.",
+                error_fetching_ideas: "Error fetching plugin ideas: ",
+            },
+            zh: {
+                nav_home: "首页",
+                nav_featured_plugins: "特色插件",
+                nav_idea_generator: "✨ 创意生成",
+                nav_about_us: "关于我们",
+                nav_login: "登录",
+                nav_register: "注册",
+                lang_toggle_en: "EN",
+                lang_toggle_zh: "中",
+                hero_title: "欢迎来到 Bottool 插件平台",
+                hero_subtitle: "发现、分享和管理您最喜爱的机器人插件。",
+                hero_cta: "立即开始",
+                featured_plugins_title: "特色插件",
+                plugin1_name: "智能聊天助手",
+                plugin1_desc: "一款能够理解自然语言并提供智能回复的聊天插件。",
+                plugin2_name: "数据分析工具",
+                plugin2_desc: "帮助您轻松分析和可视化数据的强大插件。",
+                jfk_plugin_name: "JFK Maersk 工具",
+                jfk_plugin_desc: "追踪价格计算和报告导出工具。",
+                open_tool: "打开工具",
+                learn_more: "了解更多",
+                idea_generator_title: "✨ 插件创意生成器",
+                idea_generator_subtitle: "遇到瓶颈了？输入一个关键词或您想解决的问题，让 AI 为您提供一些插件开发灵感！",
+                idea_keyword_label: "关键词或问题描述:",
+                idea_keyword_placeholder: "例如：提高效率、图片处理、社交媒体...",
+                generate_ideas_button: "生成创意",
+                about_us_title: "关于 Bottool",
+                about_us_content: "Bottool 致力于为用户提供一个开放、便捷的插件生态系统。在这里，开发者可以发布自己的创新插件，用户可以轻松找到并使用适合自己需求的工具，共同推动机器人技术的发展与应用。",
+                footer_copyright: "&copy; 2025 Bottool. 保留所有权利。",
+                footer_privacy: "隐私政策",
+                footer_terms: "服务条款",
+                error_enter_keyword: "请输入关键词或问题描述！",
+                generating_ideas: "正在生成创意，请稍候...",
+                error_api_request_failed: "API 请求失败，状态码：",
+                error_parsing_ideas: "未能从AI响应中解析出有效的插件创意。原始回复：",
+                error_unexpected_api_response: "抱歉，未能获取创意。AI返回的数据格式不符合预期。",
+                error_fetching_ideas: "获取插件创意时出错：",
+            }
+        };
 
-        let trackingList = [];
-        let chartInstance = null;
-        let trendChartInstance = null;
+        let currentLanguage = document.documentElement.lang === 'zh-CN' ? 'zh' : 'en';
 
-        function addTracking() {
-            const d = dateInput.value, dr = driverInput.value, st = stationInput.value, tr = trackingInput.value;
-            if (!d || !dr || !st || !tr) return;
-            trackingList.push({ date: d, driver: dr, station: st, tracking: tr });
-            trackingInput.value = '';
-            renderTable();
-        }
+        const ideaResultArea = document.getElementById('ideaResultArea');
+        let ideaGeneratorStatusMessageKey = null;
 
-        function renderTable() {
-            tableBody.innerHTML = '';
-            let t = 0, i = 1, m = {}, s = {}, dt = dateInput.value;
-            trackingList.forEach(e => {
-                m[e.date] = m[e.date] || {}; m[e.date][e.driver] = m[e.date][e.driver] || {}; m[e.date][e.driver][e.station] = m[e.date][e.driver][e.station] || [];
-                m[e.date][e.driver][e.station].push(e.tracking);
-            });
-            for (const d in m) for (const dr in m[d]) {
-                let cnt = 0;
-                for (const st in m[d][dr]) {
-                    const trk = m[d][dr][st];
-                    trk.forEach((tr, j) => {
-                        let p = (j === 0) ? (cnt === 0 ? 15 : 5) : (j < 15 ? 0 : 1);
-                        t += p;
-                        s[d] = s[d] || {}; s[d][dr] = s[d][dr] || { count: 0, amount: 0 };
-                        s[d][dr].count++; s[d][dr].amount += p;
-                        tableBody.innerHTML += `<tr><td>${i++}</td><td>${d}</td><td>${dr}</td><td>${st}</td><td>${tr}</td><td>${p}</td></tr>`;
-                    }); cnt++;
+        function updateIdeaGeneratorDynamicText() {
+            if (ideaGeneratorStatusMessageKey && ideaResultArea && ideaResultArea.firstChild && ideaResultArea.firstChild.classList.contains('dynamic-text-message')) {
+                const messageContainer = ideaResultArea.firstChild.querySelector('p') || ideaResultArea.firstChild;
+                if (messageContainer) {
+                    messageContainer.textContent = translations[currentLanguage][ideaGeneratorStatusMessageKey] || ideaGeneratorStatusMessageKey;
                 }
             }
-            total.querySelector('span').textContent = t;
-            renderSummary(s, dt);
         }
 
-        function renderSummary(summaryData, selectedDate) {
-            dailySummary.classList.remove('hidden');
-            const summary = summaryData[selectedDate];
-            const container = summaryContent;
-            container.innerHTML = '';
-            if (!summary) return container.textContent = 'No data';
-            const labels = [], data = [];
-            for (const driver in summary) {
-                const r = summary[driver];
-                container.innerHTML += `<strong>${driver}</strong>: ${r.count} 件，共 ${r.amount} 元<br>`;
-                labels.push(driver); data.push(r.amount);
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+            document.querySelectorAll('[data-lang-key]').forEach(element => {
+                const key = element.getAttribute('data-lang-key');
+                if (translations[lang] && translations[lang][key]) {
+                    element.innerHTML = translations[lang][key];
+                }
+            });
+            document.querySelectorAll('[data-lang-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-lang-placeholder');
+                if (translations[lang] && translations[lang][key]) {
+                    element.placeholder = translations[lang][key];
+                }
+            });
+            updateIdeaGeneratorDynamicText();
+        }
+
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const mobileMenu = document.getElementById('mobileMenu');
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // Language Toggle (Desktop and Mobile)
+        const languageToggleButtons = [document.getElementById('languageToggle'), document.getElementById('languageToggleMobile')];
+        languageToggleButtons.forEach(button => {
+            if (button) {
+                button.addEventListener('click', () => {
+                    setLanguage(currentLanguage === 'en' ? 'zh' : 'en');
+                    if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
             }
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(summaryChart.getContext('2d'), {
-                type: 'bar', data: { labels: labels, datasets: [{ label: '金额(元)', data: data, backgroundColor: 'rgba(79,70,229,0.6)' }] },
-                options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+        });
+
+        // --- Plugin Idea Generator Functionality ---
+        const generateIdeasButton = document.getElementById('generateIdeasButton');
+        const ideaKeywordInput = document.getElementById('ideaKeyword');
+
+        if (generateIdeasButton) {
+            generateIdeasButton.addEventListener('click', async () => {
+                const keyword = ideaKeywordInput.value.trim();
+                if (!keyword) {
+                    ideaGeneratorStatusMessageKey = 'error_enter_keyword';
+                    ideaResultArea.innerHTML = '<p class="text-red-500 text-center dynamic-text-message p-4 bg-red-100 rounded-md">' + translations[currentLanguage][ideaGeneratorStatusMessageKey] + '</p>';
+                    return;
+                }
+                ideaGeneratorStatusMessageKey = 'generating_ideas';
+                ideaResultArea.innerHTML =
+                    '<div class="flex justify-center items-center flex-col dynamic-text-message p-4">' +
+                    '<div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-500"></div>' +
+                    '<p class="text-indigo-600 mt-4 text-lg">' + translations[currentLanguage][ideaGeneratorStatusMessageKey] + '</p>' +
+                    '</div>';
+
+                const prompt = '为插件平台 Bottool 生成3个关于 "' + keyword + '" 的创新插件创意。' +
+                    '每个创意应该包含一个插件名称和一个简短的描述 (少于50字)。' +
+                    '请用中文回答，并按以下格式返回每个创意：\n\n' +
+                    '插件名称：[名称]\n' +
+                    '描述：[描述]\n' +
+                    '---\n';
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('API Error:', errorData);
+                        ideaGeneratorStatusMessageKey = 'error_api_request_failed';
+                        throw new Error(translations[currentLanguage][ideaGeneratorStatusMessageKey] + response.status + '. ' + (errorData && errorData.error && errorData.error.message ? errorData.error.message : ''));
+                    }
+                    const result = await response.json();
+                    ideaGeneratorStatusMessageKey = null;
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const rawText = result.candidates[0].content.parts[0].text;
+                        const ideas = rawText.split('---').map(ideaStr => {
+                            const nameMatch = ideaStr.match(/插件名称：(.*)/);
+                            const descMatch = ideaStr.match(/描述：(.*)/);
+                            if (nameMatch && descMatch) {
+                                return { name: nameMatch[1].trim(), description: descMatch[1].trim() };
+                            }
+                            return null;
+                        }).filter(idea => idea && idea.name && idea.description);
+                        if (ideas.length > 0) {
+                            let htmlOutput = '<h3 class="text-2xl font-semibold text-gray-800 mb-6 text-center" data-lang-key="ai_generated_ideas_title">✨ AI 生成的插件创意 ✨</h3>';
+                            htmlOutput += '<div class="space-y-6">';
+                            ideas.forEach(idea => {
+                                htmlOutput +=
+                                    '<div class="idea-card p-6">' +
+                                    '<h4 class="text-xl font-semibold text-indigo-700 mb-2">' + idea.name + '</h4>' +
+                                    '<p class="text-gray-600 text-base">' + idea.description + '</p>' +
+                                    '</div>';
+                            });
+                            htmlOutput += '</div>';
+                            ideaResultArea.innerHTML = htmlOutput;
+                            const newTitle = ideaResultArea.querySelector('h3');
+                            if (newTitle) newTitle.textContent = currentLanguage === 'zh' ? '✨ AI 生成的插件创意 ✨' : '✨ AI Generated Plugin Ideas ✨';
+
+                        } else {
+                            ideaGeneratorStatusMessageKey = 'error_parsing_ideas';
+                            ideaResultArea.innerHTML = '<p class="text-orange-600 text-center dynamic-text-message p-4 bg-orange-100 rounded-md">' + translations[currentLanguage][ideaGeneratorStatusMessageKey] + '<br><pre class="whitespace-pre-wrap text-sm bg-gray-100 p-3 rounded mt-2">' + rawText + '</pre></p>';
+                        }
+
+                    } else {
+                        console.error('Unexpected API response structure:', result);
+                        ideaGeneratorStatusMessageKey = 'error_unexpected_api_response';
+                        ideaResultArea.innerHTML = '<p class="text-red-500 text-center dynamic-text-message p-4 bg-red-100 rounded-md">' + translations[currentLanguage][ideaGeneratorStatusMessageKey] + '</p>';
+                    }
+                } catch (error) {
+                    console.error('获取插件创意时出错:', error);
+                    const messageKey = ideaGeneratorStatusMessageKey || 'error_fetching_ideas';
+                    ideaResultArea.innerHTML = '<p class="text-red-500 text-center dynamic-text-message p-4 bg-red-100 rounded-md">' + (translations[currentLanguage][messageKey] || messageKey) + (messageKey === 'error_fetching_ideas' || messageKey === 'error_api_request_failed' ? error.message : '') + '</p>';
+                }
             });
-            if (labels.length > 0) renderTrendChart(summaryData, labels[0]);
         }
 
-        function renderTrendChart(summaryAll, selectedDriver) {
-            const dates = Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(); d.setDate(d.getDate() - (6 - i));
-                return d.toISOString().split('T')[0];
-            });
-            const data = dates.map(d => (summaryAll[d] && summaryAll[d][selectedDriver]) ? summaryAll[d][selectedDriver].amount : 0);
-            if (trendChartInstance) trendChartInstance.destroy();
-            trendChartInstance = new Chart(trendChart.getContext('2d'), {
-                type: 'line', data: { labels: dates, datasets: [{ label: `${selectedDriver} 近7日趋势`, data: data, borderColor: 'rgba(75,192,192,1)', tension: 0.3 }] },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
-        }
+        // Initialize page language
+        setLanguage(currentLanguage);
 
-        function exportReport() {
-            let csv = 'No,Date,Driver,Station,Tracking,Price\n';
-            document.querySelectorAll('#trackingTable tbody tr').forEach(r => {
-                csv += Array.from(r.children).map(td => td.innerText).join(',') + '\n';
+        // Smooth scroll for anchor links
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    const navbarHeight = document.querySelector('nav').offsetHeight;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - navbarHeight;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                    if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                }
             });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'tracking_report.csv';
-            a.click();
-            URL.revokeObjectURL(a.href);
-        }
+        });
+
     </script>
 </body>
 

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JFK Maersk 自提登记 (React版)</title>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+
+        const { useState, useMemo, useEffect, useRef } = React;
+
+        // --- 多语言翻译数据 (已更新)---
+        const translations = {
+            zh: {
+                nav_home: '返回首页',
+                nav_registration: '登记',
+                nav_config: '配置',
+                nav_export: '导出',
+                title: 'JFK Maersk 自提登记',
+                lang_toggle: '中文 / EN',
+                date: '日期',
+                driver: '司机',
+                station: '站点',
+                dsp: 'DSP',
+                packages: '包裹数',
+                tracking_no: '追踪号',
+                price: '价格',
+                submission_time: '提交时间',
+                scan_packages_btn: '批量扫描包裹',
+                export_btn: '导出 Excel',
+                export_date_range_label: '导出日期范围:',
+                filter_by_date_label: '筛选显示日期:',
+                total_price_label: '总价:',
+                period_total_label: '筛选周期总价:',
+                driver_summary_title: '司机周期总览',
+                fill_fields_alert: '请填写所有字段',
+                driver_station_exists_alert: '错误：该司机今天已登记过此站点！',
+                station_taken_alert: '错误：该站点今天已被其他司机登记！',
+                error_modal_title: '输入错误',
+                modal_close_btn: '关闭',
+                table_header_index: '#',
+                actions: '操作',
+                delete_btn: '删除',
+                config_title: '数据配置',
+                drivers_management: '司机管理',
+                stations_management: '站点管理',
+                driver_name: '司机姓名',
+                driver_dsp: 'DSP 信息',
+                station_name: '站点名称',
+                add_driver: '添加司机',
+                add_station: '添加站点',
+                bulk_upload_drivers: '批量上传司机 (XLSX)',
+                bulk_upload_stations: '批量上传站点 (XLSX)',
+                driver_csv_hint: 'XLSX格式: 第一列为姓名, 第二列为DSP信息 (无表头)',
+                station_csv_hint: 'XLSX格式: 第一列为站点名称 (无表头)',
+                scan_modal_title: '批量扫描追踪号',
+                scan_for_station: '站点:',
+                scan_input_placeholder: '请扫描条码...',
+                scanned_count: '已扫描包裹:',
+                submit_all_btn: '全部提交',
+                cancel_btn: '取消',
+                scan_duplicate_error: '此追踪号已被扫描。',
+                scan_invalid_format_error: '格式错误: SPX后必须为15位数字或字母。',
+                scan_invalid_prefix_error: '格式错误: 必须以SPX开头。',
+                scan_invalid_length_error: '格式错误: 长度必须是18位。',
+                upload_proof_btn: '上传凭证照片',
+                photo_preview: '照片预览',
+                retake_photo_btn: '重新选择',
+                proof_photo: '凭证照片',
+                view_photo: '查看',
+                weekdays: ['日', '一', '二', '三', '四', '五', '六'],
+                delete_confirm_title: '确认删除',
+                delete_confirm_message: '请输入密码以确认删除此条记录:',
+                password_placeholder: '请输入密码',
+                confirm_delete_btn: '确认删除',
+                wrong_password_alert: '密码错误！',
+                export_title: '数据导出与预览',
+            },
+            en: {
+                nav_home: 'Back to Home',
+                nav_registration: 'Register',
+                nav_config: 'Config',
+                nav_export: 'Export',
+                title: 'JFK Maersk Pickup Registration',
+                lang_toggle: '中文 / EN',
+                date: 'Date',
+                driver: 'Driver',
+                station: 'Station',
+                dsp: 'DSP',
+                packages: 'Packages',
+                tracking_no: 'Tracking No.',
+                price: 'Price',
+                submission_time: 'Submission Time',
+                scan_packages_btn: 'Batch Scan Packages',
+                export_btn: 'Export Excel',
+                export_date_range_label: 'Export Date Range:',
+                filter_by_date_label: 'Filter Display Date:',
+                total_price_label: 'Total:',
+                period_total_label: 'Period Total:',
+                driver_summary_title: 'Driver Period Summary',
+                fill_fields_alert: 'Please fill out all fields',
+                driver_station_exists_alert: 'Error: This driver has already registered this station today!',
+                station_taken_alert: 'Error: This station has already been registered by another driver today!',
+                error_modal_title: 'Input Error',
+                modal_close_btn: 'Close',
+                table_header_index: '#',
+                actions: 'Actions',
+                delete_btn: 'Delete',
+                config_title: 'Data Configuration',
+                drivers_management: 'Drivers Management',
+                stations_management: 'Stations Management',
+                driver_name: 'Driver Name',
+                driver_dsp: 'DSP Info',
+                station_name: 'Station Name',
+                add_driver: 'Add Driver',
+                add_station: 'Add Station',
+                bulk_upload_drivers: 'Bulk Upload Drivers (XLSX)',
+                bulk_upload_stations: 'Bulk Upload Stations (XLSX)',
+                driver_csv_hint: 'XLSX format: Column A for Name, Column B for DSP Info (no header)',
+                station_csv_hint: 'XLSX format: Column A for Station Name (no header)',
+                scan_modal_title: 'Batch Scan Tracking Numbers',
+                scan_for_station: 'Station:',
+                scan_input_placeholder: 'Scan barcode here...',
+                scanned_count: 'Packages Scanned:',
+                submit_all_btn: 'Submit All',
+                cancel_btn: 'Cancel',
+                scan_duplicate_error: 'This tracking number has already been scanned.',
+                scan_invalid_format_error: 'Format Error: Must be 15 letters or numbers after SPX.',
+                scan_invalid_prefix_error: 'Format Error: Must start with SPX.',
+                scan_invalid_length_error: 'Format Error: Length must be 18 characters.',
+                upload_proof_btn: 'Upload Proof Photo',
+                photo_preview: 'Photo Preview',
+                retake_photo_btn: 'Reselect',
+                proof_photo: 'Proof Photo',
+                view_photo: 'View',
+                weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                delete_confirm_title: 'Confirm Deletion',
+                delete_confirm_message: 'Please enter the password to confirm deletion of this entry:',
+                password_placeholder: 'Enter password',
+                confirm_delete_btn: 'Confirm Delete',
+                wrong_password_alert: 'Wrong password!',
+                export_title: 'Data Export & Preview',
+            }
+        };
+
+        const initialDriversData = [{ id: 1, name: 'Jack', dsp: 'AMZL' }, { id: 2, name: 'Chen', dsp: 'FedEx' }, { id: 3, name: 'Mike', dsp: 'UPS' }];
+        const initialStationsData = [
+            { id: 1, name: '1244 Clintonville St Ste 1C Whitestone 11357' },
+            { id: 2, name: '1820 Avenue M, Brooklyn, NY, 11230' },
+            { id: 3, name: '223 Bedford Ave, Brooklyn, NY, 11211' },
+            { id: 4, name: '2602 Avenue U, Brookyln, NY, 11229' },
+            { id: 5, name: '2896 Shell Rd, Brooklyn, NY, 11224' },
+            { id: 6, name: '300 Avenue U Brooklyn 11223' },
+            { id: 7, name: '394 Myrtle Ave, Brooklyn, NY 11205' },
+            { id: 8, 'name': '620 Wilson Ave, Brooklyn, NY, 11207' },
+            { id: 9, name: '6614 Avenue U, Brooklyn, NY, 11234' },
+            { id: 10, name: '928 Fulton St, Brooklyn, NY, 11238' },
+        ];
+
+        // ############################
+        // ### 组件 (Components)
+        // ############################
+
+        const ImageViewerModal = ({ imageSrc, onClose }) => {
+            if (!imageSrc) return null;
+
+            return (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4"
+                    onClick={onClose}
+                >
+                    <div className="max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
+                        <img src={imageSrc} alt="Proof" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+                    </div>
+                </div>
+            );
+        };
+
+
+        const ErrorModal = ({ isOpen, onClose, title, message, t }) => { if (!isOpen) return null; return <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"><div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full"><h3 className="text-lg font-bold text-red-600 mb-4">{title}</h3><p className="text-gray-700 mb-6">{message}</p><button onClick={onClose} className="w-full px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">{t.modal_close_btn}</button></div></div>; };
+
+        const ScanningModal = ({ isOpen, onClose, onSubmit, driver, station, t }) => {
+            const [scannedCodes, setScannedCodes] = useState([]);
+            const [currentCode, setCurrentCode] = useState('');
+            const [scanError, setScanError] = useState('');
+            const [imageSrc, setImageSrc] = useState(null);
+            const inputRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            useEffect(() => {
+                if (isOpen) {
+                    setTimeout(() => inputRef.current?.focus(), 100);
+                } else {
+                    setScannedCodes([]);
+                    setCurrentCode('');
+                    setScanError('');
+                    setImageSrc(null);
+                }
+            }, [isOpen]);
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const trimmedCode = currentCode.trim().toUpperCase();
+                    if (!trimmedCode) return;
+
+                    if (!trimmedCode.startsWith('SPX')) {
+                        setScanError(t.scan_invalid_prefix_error);
+                        return;
+                    }
+                    if (trimmedCode.length !== 18) {
+                        setScanError(t.scan_invalid_length_error);
+                        return;
+                    }
+                    const alphanumericPart = trimmedCode.substring(3);
+                    if (!/^[A-Z0-9]{15}$/.test(alphanumericPart)) {
+                        setScanError(t.scan_invalid_format_error);
+                        return;
+                    }
+
+                    if (scannedCodes.includes(trimmedCode)) {
+                        setScanError(t.scan_duplicate_error);
+                    } else {
+                        setScannedCodes(prev => [trimmedCode, ...prev]);
+                        setScanError('');
+                    }
+                    setCurrentCode('');
+                }
+            };
+
+            const handleImageChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (loadEvent) => {
+                        setImageSrc(loadEvent.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleDeleteCode = (codeToDelete) => {
+                setScannedCodes(prev => prev.filter(code => code !== codeToDelete));
+            };
+
+            const handleSubmit = () => {
+                onSubmit(scannedCodes, imageSrc);
+                onClose();
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex justify-center items-center p-4">
+                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg">
+                        <div className="p-6 border-b">
+                            <h2 className="text-xl font-bold text-gray-800">{t.scan_modal_title}</h2>
+                            <p className="text-sm text-gray-600">{t.driver}: <span className="font-semibold">{driver}</span> | {t.scan_for_station} <span className="font-semibold">{station}</span></p>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    placeholder={t.scan_input_placeholder}
+                                    value={currentCode}
+                                    onChange={(e) => setCurrentCode(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    className={`w-full p-3 border-2 rounded-md text-lg focus:ring-2 ${scanError ? 'border-red-500 ring-red-300' : 'border-indigo-500 focus:ring-indigo-500'}`}
+                                />
+                                {scanError && <p className="text-red-600 text-sm mt-1">{scanError}</p>}
+                                <div className="mt-4 bg-gray-50 p-4 rounded-md h-64 overflow-y-auto">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="font-semibold text-gray-700">{t.scanned_count}</h3>
+                                        <span className="text-lg font-bold text-indigo-600">{scannedCodes.length}</span>
+                                    </div>
+                                    <ul className="divide-y divide-gray-200">
+                                        {scannedCodes.map((code, index) => (
+                                            <li key={index} className="py-2 flex justify-between items-center">
+                                                <span className="text-gray-800 font-mono text-sm">{code}</span>
+                                                <button onClick={() => handleDeleteCode(code)} className="text-red-500 hover:text-red-700 text-xs font-bold">{t.delete_btn}</button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <h3 className="font-semibold text-gray-700 mb-2">{t.photo_preview}</h3>
+                                <div className="flex-grow bg-gray-100 rounded-md flex items-center justify-center relative aspect-square">
+                                    {imageSrc ? (
+                                        <img src={imageSrc} alt="Proof" className="w-full h-full object-cover rounded-md" />
+                                    ) : (
+                                        <span className="text-gray-400">No Image</span>
+                                    )}
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    ref={fileInputRef}
+                                    onChange={handleImageChange}
+                                    className="hidden"
+                                />
+                                <button
+                                    onClick={() => fileInputRef.current.click()}
+                                    className="w-full mt-4 px-4 py-2 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600"
+                                >
+                                    {imageSrc ? t.retake_photo_btn : t.upload_proof_btn}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-gray-50 flex justify-end gap-4 rounded-b-lg">
+                            <button onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">{t.cancel_btn}</button>
+                            <button onClick={handleSubmit} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">{t.submit_all_btn}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CustomDatePicker = ({ isOpen, onClose, onSelect, t }) => { const [viewDate, setViewDate] = useState(new Date()); const todayString = new Date().toISOString().split('T')[0]; const getPeriodId = (d) => { const date = new Date(d); const day = date.getDay(); const diff = (day + 1) % 7; date.setDate(date.getDate() - diff); return Math.floor(date.getTime() / (7 * 86400000)); }; const periodColors = ['bg-teal-50', 'bg-blue-50', 'bg-indigo-50', 'bg-purple-50']; const days = useMemo(() => { const year = viewDate.getFullYear(); const month = viewDate.getMonth(); const firstDayOfMonth = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const calendarDays = []; for (let i = 0; i < firstDayOfMonth; i++) { calendarDays.push(null); } for (let i = 1; i <= daysInMonth; i++) { calendarDays.push(new Date(year, month, i)); } while (calendarDays.length % 7 !== 0) { calendarDays.push(null); } return calendarDays; }, [viewDate]); if (!isOpen) return null; return <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" onClick={onClose}><div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-xs" onClick={e => e.stopPropagation()}><div className="flex justify-between items-center mb-4"><button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="px-2 py-1 rounded-md hover:bg-gray-200">‹</button><div className="font-bold text-lg">{viewDate.getFullYear()} / {viewDate.getMonth() + 1}</div><button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="px-2 py-1 rounded-md hover:bg-gray-200">›</button></div><div className="grid grid-cols-7 gap-1 text-center text-sm text-gray-500 mb-2">{t.weekdays.map(day => <div key={day}>{day}</div>)}</div><div className="grid grid-cols-7 gap-1">{days.map((day, index) => { if (!day) return <div key={index}></div>; const isToday = day.toISOString().split('T')[0] === todayString; const isSaturday = day.getDay() === 6; const periodId = getPeriodId(day); const colorClass = periodColors[periodId % periodColors.length]; return (<div key={index} onClick={() => onSelect(day)} className={`p-2 rounded-md text-center cursor-pointer hover:bg-indigo-200 ${isToday ? 'bg-yellow-200 font-bold' : colorClass} ${isSaturday ? 'border-2 border-blue-500' : ''}`}>{day.getDate()}</div>); })}</div></div></div>; };
+        const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, t }) => { const [password, setPassword] = useState(''); const handleConfirm = () => { onConfirm(password); setPassword(''); }; if (!isOpen) return null; return <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"><div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full"><h3 className="text-lg font-bold text-gray-800 mb-2">{t.delete_confirm_title}</h3><p className="text-gray-600 mb-4">{t.delete_confirm_message}</p><input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t.password_placeholder} className="w-full p-2 border rounded-md mb-4" /><div className="flex justify-end gap-4"><button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">{t.cancel_btn}</button><button onClick={handleConfirm} className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">{t.confirm_delete_btn}</button></div></div></div>; };
+        const ConfigurationPage = ({ drivers, setDrivers, stations, setStations, t }) => { const [newDriverName, setNewDriverName] = useState(''); const [newDriverDsp, setNewDriverDsp] = useState(''); const [newStationName, setNewStationName] = useState(''); const handleAddDriver = () => { if (!newDriverName.trim() || !newDriverDsp.trim()) return; const newId = drivers.length > 0 ? Math.max(...drivers.map(d => d.id)) + 1 : 1; setDrivers([...drivers, { id: newId, name: newDriverName, dsp: newDriverDsp }]); setNewDriverName(''); setNewDriverDsp(''); }; const handleDeleteDriver = (idToDelete) => setDrivers(drivers.filter(d => d.id !== idToDelete)); const handleAddStation = () => { if (!newStationName.trim()) return; const newId = stations.length > 0 ? Math.max(...stations.map(s => s.id)) + 1 : 1; setStations([...stations, { id: newId, name: newStationName }]); setNewStationName(''); }; const handleDeleteStation = (idToDelete) => setStations(stations.filter(s => s.id !== idToDelete)); const handleFileUpload = (file, type) => { if (!file) return; const reader = new FileReader(); reader.onload = (e) => { if (typeof XLSX === 'undefined') { alert('Error: XLSX library not found.'); return; } const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, { type: 'array' }); const firstSheetName = workbook.SheetNames[0]; const worksheet = workbook.Sheets[firstSheetName]; const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); if (type === 'drivers') { const newDrivers = json.map((row, index) => ({ id: Date.now() + index, name: row[0] ? String(row[0]).trim() : '', dsp: row[1] ? String(row[1]).trim() : '' })).filter(d => d.name); setDrivers(prev => [...prev, ...newDrivers]); } if (type === 'stations') { const newStations = json.map((row, index) => ({ id: Date.now() + index, name: row[0] ? String(row[0]).trim() : '' })).filter(s => s.name); setStations(prev => [...prev, ...newStations]); } }; reader.readAsArrayBuffer(file); }; return <div><h2 className="text-2xl font-bold text-gray-800 mb-6">{t.config_title}</h2><div className="bg-gray-50 p-6 rounded-lg mb-8"><h3 className="text-xl font-semibold text-gray-700 mb-4">{t.drivers_management}</h3><div className="grid md:grid-cols-3 gap-4 mb-4"><input type="text" placeholder={t.driver_name} value={newDriverName} onChange={e => setNewDriverName(e.target.value)} className="p-2 border rounded-md" /><input type="text" placeholder={t.driver_dsp} value={newDriverDsp} onChange={e => setNewDriverDsp(e.target.value)} className="p-2 border rounded-md" /><button onClick={handleAddDriver} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">{t.add_driver}</button></div><div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-1">{t.bulk_upload_drivers}</label><input type="file" accept=".xlsx, .xls" onChange={(e) => handleFileUpload(e.target.files[0], 'drivers')} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" /><p className="text-xs text-gray-500 mt-1">{t.driver_csv_hint}</p></div><div className="max-h-60 overflow-y-auto border rounded-lg"><table className="min-w-full divide-y"><thead className="bg-gray-100"><tr><th className="p-3 text-left font-semibold text-gray-600">{t.driver_name}</th><th className="p-3 text-left font-semibold text-gray-600">{t.driver_dsp}</th><th className="w-24 p-3"></th></tr></thead><tbody className="bg-white divide-y">{drivers.map(driver => (<tr key={driver.id}><td className="p-3">{driver.name}</td><td className="p-3 text-gray-600">{driver.dsp}</td><td className="p-3 text-center"><button onClick={() => handleDeleteDriver(driver.id)} className="text-red-500 hover:text-red-700 text-sm font-semibold">{t.delete_btn}</button></td></tr>))}</tbody></table></div></div><div className="bg-gray-50 p-6 rounded-lg"><h3 className="text-xl font-semibold text-gray-700 mb-4">{t.stations_management}</h3><div className="grid md:grid-cols-3 gap-4 mb-4"><input type="text" placeholder={t.station_name} value={newStationName} onChange={e => setNewStationName(e.target.value)} className="md:col-span-2 p-2 border rounded-md" /><button onClick={handleAddStation} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">{t.add_station}</button></div><div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-1">{t.bulk_upload_stations}</label><input type="file" accept=".xlsx, .xls" onChange={(e) => handleFileUpload(e.target.files[0], 'stations')} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" /><p className="text-xs text-gray-500 mt-1">{t.station_csv_hint}</p></div><div className="max-h-60 overflow-y-auto border rounded-lg"><table className="min-w-full divide-y"><thead className="bg-gray-100"><tr><th className="p-3 text-left font-semibold text-gray-600">{t.station_name}</th><th className="w-24 p-3"></th></tr></thead><tbody className="bg-white divide-y">{stations.map(station => (<tr key={station.id}><td className="p-3">{station.name}</td><td className="p-3 text-center"><button onClick={() => handleDeleteStation(station.id)} className="text-red-500 hover:text-red-700 text-sm font-semibold">{t.delete_btn}</button></td></tr>))}</tbody></table></div></div></div>; };
+
+        const RegistrationPage = ({ drivers, stations, t, entries, setEntries, API_URL, setViewingImageSrc }) => {
+            const currentEntries = entries || [];
+            const [newStop, setNewStop] = useState({ date: new Date().toISOString().split('T')[0], driver: '', station: '' });
+            const [modalInfo, setModalInfo] = useState({ isOpen: false, message: '' });
+            const [scanModalInfo, setScanModalInfo] = useState({ isOpen: false, driver: '', station: '' });
+            const [deleteModal, setDeleteModal] = useState({ isOpen: false, entryId: null });
+            const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+            const [sortConfig, setSortConfig] = useState({ key: 'submissionTime', direction: 'descending' });
+
+            useEffect(() => { if (drivers.length > 0 && !newStop.driver) setNewStop(prev => ({ ...prev, driver: drivers[0].name })); if (stations.length > 0 && !newStop.station) setNewStop(prev => ({ ...prev, station: stations[0].name })); }, [drivers, stations, newStop.driver, newStop.station]);
+
+            const pricedAndFilteredEntries = useMemo(() => {
+                const dailyDriverStatus = {};
+                const sortedByTime = [...currentEntries].sort((a, b) => new Date(a.submissionTime) - new Date(b.submissionTime));
+
+                const priced = sortedByTime.map(entry => {
+                    const numPackages = parseInt(entry.packages, 10) || 0;
+                    if (!dailyDriverStatus[entry.date]) { dailyDriverStatus[entry.date] = {}; }
+                    if (!dailyDriverStatus[entry.date][entry.driver]) { dailyDriverStatus[entry.date][entry.driver] = { firstStopDone: false, visitedStations: new Set() }; }
+                    const status = dailyDriverStatus[entry.date][entry.driver];
+                    let price = 0;
+                    if (!status.firstStopDone) {
+                        price = 15.00 + Math.max(0, numPackages - 15); status.firstStopDone = true;
+                    } else {
+                        if (!status.visitedStations.has(entry.station)) {
+                            price = 5.00 + Math.max(0, numPackages - 5);
+                        } else {
+                            price = 0;
+                        }
+                    }
+                    status.visitedStations.add(entry.station);
+                    return { ...entry, price };
+                });
+
+                const filtered = priced.filter(entry => entry.date === filterDate);
+                filtered.sort((a, b) => { if (a[sortConfig.key] < b[sortConfig.key]) { return sortConfig.direction === 'ascending' ? -1 : 1; } if (a[sortConfig.key] > b[sortConfig.key]) { return sortConfig.direction === 'ascending' ? 1 : -1; } return 0; });
+                return filtered;
+            }, [currentEntries, filterDate, sortConfig]);
+
+            const periodTotal = useMemo(() => {
+                return pricedAndFilteredEntries.reduce((sum, entry) => sum + entry.price, 0);
+            }, [pricedAndFilteredEntries]);
+
+            const handleOpenScanModal = () => { if (!newStop.date || !newStop.driver || !newStop.station) { setModalInfo({ isOpen: true, message: t.fill_fields_alert }); return; } if (currentEntries.some(e => e.date === newStop.date && e.driver === newStop.driver && e.station === newStop.station)) { setModalInfo({ isOpen: true, message: t.driver_station_exists_alert }); return; } if (currentEntries.some(e => e.date === newStop.date && e.station === newStop.station)) { setModalInfo({ isOpen: true, message: t.station_taken_alert }); return; } setScanModalInfo({ isOpen: true, driver: newStop.driver, station: newStop.station }); };
+
+            const handleSubmitScans = (scannedCodes, imageSrc) => {
+                const { driver, station } = scanModalInfo;
+                const selectedDriverObject = drivers.find(d => d.name === driver);
+                const dsp = selectedDriverObject ? selectedDriverObject.dsp : '';
+
+                const newEntryData = {
+                    date: newStop.date,
+                    submissionTime: new Date().toISOString(),
+                    driver,
+                    station,
+                    dsp,
+                    packages: scannedCodes.length,
+                    tracking: scannedCodes.join(', '),
+                    proofImage: imageSrc
+                };
+
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newEntryData)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                try {
+                                    const errorData = JSON.parse(text);
+                                    throw new Error(errorData.message || 'Server responded with an error');
+                                } catch (e) {
+                                    throw new Error(`Server error: ${response.status} - ${text}`);
+                                }
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(savedEntryFromServer => {
+                        const completeNewEntry = {
+                            ...newEntryData,
+                            id: savedEntryFromServer.id,
+                            submissionTime: savedEntryFromServer.submissionTime || newEntryData.submissionTime
+                        };
+                        setEntries(prev => [...prev, completeNewEntry]);
+                    })
+                    .catch(error => {
+                        console.error("Error saving data:", error);
+                        alert("保存数据失败 (Failed to save data): " + error.message);
+                    });
+            };
+
+            const handleDeleteEntry = (entryId) => { setDeleteModal({ isOpen: true, entryId }); };
+            const handleConfirmDelete = (password) => { if (password === '0627') { setEntries(prev => prev.filter(entry => entry.id !== deleteModal.entryId)); setDeleteModal({ isOpen: false, entryId: null }); } else { alert(t.wrong_password_alert); } };
+            const requestSort = (key) => { let direction = 'ascending'; if (sortConfig.key === key && sortConfig.direction === 'ascending') { direction = 'descending'; } setSortConfig({ key, direction }); };
+            const handleInputChange = (e) => { const { name, value } = e.target; setNewStop(prev => ({ ...prev, [name]: value })); };
+            const SortableHeader = ({ label, sortKey }) => { const isSorted = sortConfig.key === sortKey; const icon = isSorted ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : ''; return (<th onClick={() => requestSort(sortKey)} className="p-3 text-left font-bold text-gray-600 uppercase text-xs cursor-pointer">{label} {icon}</th>); };
+
+            return (
+                <div>
+                    <ErrorModal isOpen={modalInfo.isOpen} onClose={() => setModalInfo({ isOpen: false, message: '' })} title={t.error_modal_title} message={modalInfo.message} t={t} />
+                    <ScanningModal isOpen={scanModalInfo.isOpen} onClose={() => setScanModalInfo({ isOpen: false })} onSubmit={handleSubmitScans} driver={scanModalInfo.driver} station={scanModalInfo.station} t={t} />
+                    <DeleteConfirmationModal isOpen={deleteModal.isOpen} onClose={() => setDeleteModal({ isOpen: false, entryId: null })} onConfirm={handleConfirmDelete} t={t} />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6"><div className="flex flex-col"><label className="text-sm font-medium text-gray-700 mb-1">{t.date}</label><input type="date" name="date" value={newStop.date} onChange={handleInputChange} className="p-2 border rounded-md" /></div><div className="flex flex-col"><label className="text-sm font-medium text-gray-700 mb-1">{t.driver}</label><select name="driver" value={newStop.driver} onChange={handleInputChange} className="p-2 border rounded-md">{drivers.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}</select></div><div className="flex flex-col"><label className="text-sm font-medium text-gray-700 mb-1">{t.station}</label><select name="station" value={newStop.station} onChange={handleInputChange} className="p-2 border rounded-md">{stations.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div><div className="flex flex-col justify-end"><button onClick={handleOpenScanModal} className="w-full px-5 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 h-[42px]">{t.scan_packages_btn}</button></div></div>
+                    <div className="mb-4 p-4 bg-gray-50 rounded-lg flex items-center gap-4"><label className="text-sm font-medium text-gray-700">{t.filter_by_date_label}</label><input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="p-1 border-gray-300 rounded-md shadow-sm" /></div>
+                    <div className="overflow-x-auto"><table className="min-w-full divide-y"><thead className="bg-gray-100"><tr><SortableHeader label={t.table_header_index} sortKey="id" /><SortableHeader label={t.date} sortKey="date" /><SortableHeader label={t.submission_time} sortKey="submissionTime" /><SortableHeader label={t.driver} sortKey="driver" /><SortableHeader label={t.dsp} sortKey="dsp" /><SortableHeader label={t.station} sortKey="station" /><SortableHeader label={t.packages} sortKey="packages" /><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.tracking_no}</th><SortableHeader label={t.price} sortKey="price" /><th className="p-3 text-center font-bold text-gray-600 uppercase text-xs">{t.proof_photo}</th><th className="p-3 text-center font-bold text-gray-600 uppercase text-xs">{t.actions}</th></tr></thead><tbody className="bg-white divide-y">{pricedAndFilteredEntries.map((entry) => (<tr key={entry.id} className="hover:bg-gray-50"><td className="p-3 text-sm">{entry.id}</td><td className="p-3 text-sm">{entry.date}</td><td className="p-3 text-sm">{new Date(entry.submissionTime).toLocaleTimeString()}</td><td className="p-3 text-sm">{entry.driver}</td><td className="p-3 text-sm text-gray-600">{entry.dsp}</td><td className="p-3 text-sm">{entry.station}</td><td className="p-3 text-sm text-center">{entry.packages}</td><td className="p-3 text-sm truncate max-w-xs" title={entry.tracking}>{entry.tracking}</td><td className="p-3 text-right font-semibold text-sm">${entry.price.toFixed(2)}</td><td className="p-3 text-center">{entry.proofImage && (<button onClick={() => setViewingImageSrc(entry.proofImage)} className="text-indigo-600 hover:underline text-sm font-semibold">{t.view_photo}</button>)}</td><td className="p-3 text-center space-x-2"><button onClick={() => handleDeleteEntry(entry.id)} className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-full hover:bg-red-200">{t.delete_btn}</button></td></tr>))}</tbody></table></div>
+                    <div className="mt-6 text-right"><p className="text-xl font-bold"><span className="font-medium text-gray-600">{t.period_total_label} </span>${periodTotal.toFixed(2)}</p></div>
+                </div>
+            );
+        };
+
+        const ExportPage = ({ entries, t, setViewingImageSrc }) => {
+            const currentEntries = entries || [];
+            const [exportDateRange, setExportDateRange] = useState({ start: '', end: '' });
+            const [isDatePickerOpen, setDatePickerOpen] = useState(false);
+            const formatDate = (date) => new Date(date).toISOString().split('T')[0];
+            useEffect(() => { const today = new Date(); const dayOfWeek = today.getDay(); const startDate = new Date(today); startDate.setDate(today.getDate() - (dayOfWeek + 1) % 7); const endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 7); setExportDateRange({ start: formatDate(startDate), end: formatDate(endDate) }); }, []);
+
+            const pricedEntries = useMemo(() => {
+                if (!currentEntries) return [];
+                const dailyDriverStatus = {};
+                const sortedEntries = [...currentEntries].sort((a, b) => new Date(a.submissionTime) - new Date(b.submissionTime));
+                return sortedEntries.map(entry => {
+                    const { date, driver, station, packages } = entry;
+                    const numPackages = parseInt(packages, 10) || 0;
+                    if (!dailyDriverStatus[date]) { dailyDriverStatus[date] = {}; }
+                    if (!dailyDriverStatus[date][driver]) { dailyDriverStatus[date][driver] = { firstStopDone: false, visitedStations: new Set() }; }
+                    const status = dailyDriverStatus[date][driver];
+                    let price = 0;
+                    if (!status.firstStopDone) {
+                        price = 15.00 + Math.max(0, numPackages - 15); status.firstStopDone = true;
+                    } else {
+                        if (!status.visitedStations.has(entry.station)) {
+                            price = 5.00 + Math.max(0, numPackages - 5);
+                        } else {
+                            price = 0;
+                        }
+                    }
+                    status.visitedStations.add(station);
+                    return { ...entry, price };
+                });
+            }, [currentEntries]);
+
+            const filteredEntries = useMemo(() => pricedEntries.filter(entry => entry.date >= exportDateRange.start && entry.date <= exportDateRange.end), [pricedEntries, exportDateRange]);
+            const driverSummary = useMemo(() => { if (!filteredEntries || filteredEntries.length === 0) return []; const summary = filteredEntries.reduce((acc, entry) => { acc[entry.driver] = (acc[entry.driver] || 0) + entry.price; return acc; }, {}); return Object.entries(summary).map(([driver, total]) => ({ driver, total })); }, [filteredEntries]);
+            const filteredTotalPrice = useMemo(() => filteredEntries.reduce((sum, entry) => sum + entry.price, 0), [filteredEntries]);
+
+            const exportToXLSX = () => {
+                if (typeof XLSX === 'undefined') { alert('Error: XLSX library not found.'); return; }
+                const summaryData = driverSummary.map(item => ({ [t.driver]: item.driver, [t.price]: item.total }));
+                const summaryWorksheet = XLSX.utils.json_to_sheet(summaryData);
+                summaryWorksheet['!cols'] = [{ wch: 25 }, { wch: 15 }];
+                for (let i = 0; i < driverSummary.length; i++) { const cellAddress = XLSX.utils.encode_cell({ r: i + 1, c: 1 }); if (summaryWorksheet[cellAddress]) { summaryWorksheet[cellAddress].z = '$0.00'; } }
+
+                const dataToExport = filteredEntries.map(entry => ({
+                    [t.table_header_index]: entry.id,
+                    [t.date]: entry.date,
+                    [t.submission_time]: new Date(entry.submissionTime).toLocaleString(),
+                    [t.driver]: entry.driver,
+                    [t.dsp]: entry.dsp || '',
+                    [t.station]: entry.station,
+                    [t.packages]: entry.packages,
+                    [t.tracking_no]: entry.tracking,
+                    [t.price]: entry.price,
+                    // **THE FIX**
+                    [t.proof_photo]: entry.proofImage ? 'YES' : 'NO'
+                }));
+                dataToExport.push({});
+                dataToExport.push({ [t.tracking_no]: t.total_price_label, [t.price]: filteredTotalPrice });
+
+                const worksheet = XLSX.utils.json_to_sheet(dataToExport, {
+                    header: [t.table_header_index, t.date, t.submission_time, t.driver, t.dsp, t.station, t.packages, t.tracking_no, t.price, t.proof_photo],
+                    skipHeader: false
+                });
+
+                worksheet['!cols'] = [{ wch: 5 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 25 }, { wch: 10 }, { wch: 40 }, { wch: 10 }, { wch: 15 }];
+                const priceColNum = 8;
+                for (let i = 0; i < filteredEntries.length; i++) { const cellAddress = XLSX.utils.encode_cell({ r: i + 1, c: priceColNum }); if (worksheet[cellAddress]) { worksheet[cellAddress].z = '$0.00'; } }
+                const totalRowAddress = XLSX.utils.encode_cell({ r: filteredEntries.length + 2, c: priceColNum }); if (worksheet[totalRowAddress]) { worksheet[totalRowAddress].z = '$0.00'; }
+
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Driver Summary");
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Registrations");
+                XLSX.writeFile(workbook, `Pickup_Registrations_${exportDateRange.start}_to_${exportDateRange.end}.xlsx`);
+            };
+
+            const handleDateSelect = (date) => { const dayOfWeek = date.getDay(); const startDate = new Date(date); startDate.setDate(date.getDate() - (dayOfWeek + 1) % 7); const endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 7); setExportDateRange({ start: formatDate(startDate), end: formatDate(endDate) }); setDatePickerOpen(false); };
+
+            return (
+                <div>
+                    <CustomDatePicker isOpen={isDatePickerOpen} onClose={() => setDatePickerOpen(false)} onSelect={handleDateSelect} t={t} />
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">{t.export_title}</h2>
+                    <div className="flex items-center gap-4 mb-8 flex-wrap bg-gray-50 p-4 rounded-lg">
+                        <label className="text-sm font-medium text-gray-700">{t.export_date_range_label}</label>
+                        <button onClick={() => setDatePickerOpen(true)} className="p-2 border-gray-300 rounded-md shadow-sm bg-white min-w-[220px] text-left">{exportDateRange.start} - {exportDateRange.end}</button>
+                        <button onClick={exportToXLSX} className="ml-4 px-5 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 h-[42px]">{t.export_btn}</button>
+                    </div>
+                    <div className="my-6 p-4 border rounded-lg"><h3 className="text-lg font-semibold text-gray-700 mb-2">{t.driver_summary_title}</h3><div className="overflow-x-auto bg-white rounded-lg shadow"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.driver}</th><th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.price}</th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{driverSummary.map(({ driver, total }) => (<tr key={driver}><td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{driver}</td><td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right font-semibold">${total.toFixed(2)}</td></tr>))}</tbody></table></div></div>
+                    <div className="overflow-x-auto"><table className="min-w-full divide-y"><thead className="bg-gray-100"><tr><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.table_header_index}</th><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.date}</th><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.submission_time}</th><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.driver}</th><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.dsp}</th><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.station}</th><th className="p-3 text-center font-bold text-gray-600 uppercase text-xs">{t.packages}</th><th className="p-3 text-left font-bold text-gray-600 uppercase text-xs">{t.tracking_no}</th><th className="p-3 text-right font-bold text-gray-600 uppercase text-xs">{t.price}</th><th className="p-3 text-center font-bold text-gray-600 uppercase text-xs">{t.proof_photo}</th></tr></thead><tbody className="bg-white divide-y">{filteredEntries.map((entry) => (<tr key={entry.id} className="hover:bg-gray-50"><td className="p-3 text-sm">{entry.id}</td><td className="p-3 text-sm">{entry.date}</td><td className="p-3 text-sm">{new Date(entry.submissionTime).toLocaleTimeString()}</td><td className="p-3 text-sm">{entry.driver}</td><td className="p-3 text-sm text-gray-600">{entry.dsp}</td><td className="p-3 text-sm">{entry.station}</td><td className="p-3 text-sm text-center">{entry.packages}</td><td className="p-3 text-sm truncate max-w-xs">{entry.tracking}</td><td className="p-3 text-right font-semibold text-sm">${entry.price.toFixed(2)}</td><td className="p-3 text-center">{entry.proofImage && (<button onClick={() => setViewingImageSrc(entry.proofImage)} className="text-indigo-600 hover:underline text-sm font-semibold">{t.view_photo}</button>)}</td></tr>))}</tbody></table></div>
+                    <div className="mt-6 text-right"><p className="text-xl font-bold"><span className="font-medium text-gray-600">{t.period_total_label} </span>${filteredTotalPrice.toFixed(2)}</p></div>
+                </div>
+            );
+        };
+
+        function App() {
+            const API_URL = 'https://74xrbs2vdd.execute-api.us-east-1.amazonaws.com/v1/entries';
+
+            const [page, setPage] = useState('registration');
+            const [lang, setLang] = useState('zh');
+            const [drivers, setDrivers] = useState(initialDriversData);
+            const [stations, setStations] = useState(initialStationsData);
+
+            const [allEntries, setAllEntries] = useState([]);
+            const [viewingImageSrc, setViewingImageSrc] = useState(null);
+            const t = useMemo(() => translations[lang], [lang]);
+            const navBtnStyle = "px-4 py-2 rounded-md font-semibold transition-colors";
+            const inactiveBtnStyle = "bg-gray-200 text-gray-700 hover:bg-gray-300";
+            const activeBtnStyle = "bg-indigo-600 text-white";
+
+            useEffect(() => {
+                console.log("Fetching data from API on page load...");
+                fetch(API_URL)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Network response was not ok: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log("Data fetched successfully:", data);
+                        if (Array.isArray(data)) {
+                            setAllEntries(data);
+                        }
+                    })
+                    .catch(error => console.error("Error fetching data on page load:", error));
+            }, []);
+
+            return (
+                <div className="bg-gray-100 min-h-screen p-4 sm:p-8 font-sans">
+                    <ImageViewerModal imageSrc={viewingImageSrc} onClose={() => setViewingImageSrc(null)} />
+                    <div className="max-w-7xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                        <header className="flex justify-between items-center pb-4 mb-6 border-b">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <a href="index.html" className={`${navBtnStyle} ${inactiveBtnStyle}`}>{t.nav_home}</a>
+                                <button onClick={() => setPage('registration')} className={`${navBtnStyle} ${page === 'registration' ? activeBtnStyle : inactiveBtnStyle}`}>{t.nav_registration}</button>
+                                <button onClick={() => setPage('export')} className={`${navBtnStyle} ${page === 'export' ? activeBtnStyle : inactiveBtnStyle}`}>{t.nav_export}</button>
+                                <button onClick={() => setPage('config')} className={`${navBtnStyle} ${page === 'config' ? activeBtnStyle : inactiveBtnStyle}`}>{t.nav_config}</button>
+                            </div>
+                            <button onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 ml-4">{t.lang_toggle}</button>
+                        </header>
+                        <main>
+                            {page === 'registration' && <RegistrationPage drivers={drivers} stations={stations} t={t} entries={allEntries} setEntries={setAllEntries} API_URL={API_URL} setViewingImageSrc={setViewingImageSrc} />}
+                            {page === 'export' && <ExportPage entries={allEntries} t={t} setViewingImageSrc={setViewingImageSrc} />}
+                            {page === 'config' && <ConfigurationPage drivers={drivers} setDrivers={setDrivers} stations={stations} setStations={setStations} t={t} />}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+
+    </script>
+</body>
+
+</html>
